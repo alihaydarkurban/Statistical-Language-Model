@@ -4,9 +4,10 @@ import re
 import random
 import html2text
 
-
 UNK = 'UNK'  # It for unknown letter set. (It means that they have not seen before)
 N = [1, 2, 3, 4, 5]  # It means 1_Grams, 2_Grams, ..., 5_Grams
+TOP_5 = 5
+TOP = 5
 
 
 class NGrams:
@@ -43,7 +44,7 @@ class NGrams:
             exit()
 
         data = file_handle.read()
-        # data = html2text.html2text(data)
+        data = html2text.html2text(data)
         data = data.lower()
         data = re.sub(r'[^a-zçğıöşü ]', "", data)
         file_handle.close()
@@ -55,8 +56,15 @@ class NGrams:
         self.probabilities[UNK] = 0  # { 'UNK': 0 }
         self.good_turing_smoothing()
 
-        for _ngram, _counter in self.counter_dict.items():
-            self.probabilities[_ngram] = _counter / len(self.counter_dict)
+        if self.n == 1:
+            for _ngram, _counter in self.counter_dict.items():
+                self.probabilities[_ngram] = _counter / len(self.counter_dict)
+        else:
+            markov_asm_n = self.n - 1
+            n_gram = ngrams(self.data, markov_asm_n)
+            markov_asm = Counter(n_gram)
+            for _ngram, _counter in self.counter_dict.items():
+                self.probabilities[_ngram] = _counter / markov_asm.get(_ngram[0:-1])
 
         self.probabilities = sorted(self.probabilities.items(), key=lambda item: item[1], reverse=True)
 
@@ -81,3 +89,35 @@ class NGrams:
                 r_count = c_add_1 * (N_c_add_1 / N_c)
                 self.counter_dict[_ngram] = r_count
         self.gt = count_one_time / len(self.counter_dict)
+
+    def generate_random_sentences(self):
+        random_sentences = []
+
+        for j in range(TOP_5):
+            sentence = ['', '', '', '', '']
+            random_nums = random.sample(range(0, TOP), TOP_5)  # Random sampling without replacement.
+            for i in range(len(random_nums)):
+                sentence[i] = sentence[i].join(self.probabilities[random_nums[i]][0])
+            random_sentences.append(sentence)
+        print_sentences(random_sentences)
+
+
+def print_sentences(random_sentences):
+    which_one = random.randint(0, TOP_5 - 1)
+    # print_one_sentence(random_sentences[which_one])
+    print_all_sentences(random_sentences)
+
+
+def print_one_sentence(one_sentence):
+    print("Printing one random sentence...")
+    for word in one_sentence:
+        print(word, end=' ')
+    print()
+
+
+def print_all_sentences(all_sentences):
+    print("Printing all random sentences...")
+    for sentence in all_sentences:
+        for word in sentence:
+            print(word, end=' ')
+        print()
